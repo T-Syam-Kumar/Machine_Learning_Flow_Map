@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Machine Learning — Field Notes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#EEF2F1;
+    --surface:#FFFFFF;
+    --ink:#16232A;
+    --ink-soft:#4C5B62;
+    --line-subtle:#D6DEDC;
+    --line-strong:#B9C4C1;
+
+    --regression:#2C5F8A;
+    --regression-bg:#E9F0F5;
+    --classification:#7B4B94;
+    --classification-bg:#F1EAF4;
+    --tree:#3C7A52;
+    --tree-bg:#E9F3EC;
+    --neural:#A8791E;
+    --neural-bg:#F5EEDD;
+    --clustering:#A8415F;
+    --clustering-bg:#F6E9ED;
+    --dimred:#2E7D9E;
+    --dimred-bg:#E7F1F5;
+    --found:#5B5F97;
+    --found-bg:#ECEDF6;
+
+    --good:#2E7D46;
+    --bad:#B23B3B;
+
+    --radius:10px;
+    --font-display:'Space Grotesk', sans-serif;
+    --font-body:'IBM Plex Sans', sans-serif;
+    --font-mono:'IBM Plex Mono', monospace;
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    background-image:
+      linear-gradient(var(--line-subtle) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line-subtle) 1px, transparent 1px);
+    background-size:28px 28px;
+    color:var(--ink);
+    font-family:var(--font-body);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  h1,h2,h3{font-family:var(--font-display); margin:0; letter-spacing:-0.01em;}
+  a{color:inherit;}
+
+  .wrap{max-width:1180px; margin:0 auto; padding:0 24px;}
+
+  /* ---------- HERO ---------- */
+  .hero{padding:64px 0 32px;}
+  .hero .kicker{
+    font-family:var(--font-mono); font-size:12.5px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--ink-soft); display:flex; align-items:center; gap:10px; margin-bottom:14px;
+  }
+  .hero .kicker::before{content:""; width:26px; height:2px; background:var(--ink-soft); display:inline-block;}
+  .hero h1{font-size:clamp(32px,5vw,52px); font-weight:700; max-width:820px;}
+  .hero h1 em{font-style:normal; color:var(--regression);}
+  .hero p.lede{max-width:640px; color:var(--ink-soft); font-size:16.5px; margin-top:14px;}
+
+  .legend{display:flex; flex-wrap:wrap; gap:8px 18px; margin-top:28px; font-family:var(--font-mono); font-size:12.5px;}
+  .legend span{display:inline-flex; align-items:center; gap:7px; color:var(--ink-soft);}
+  .legend i{width:11px; height:11px; border-radius:50%; display:inline-block;}
+
+  /* ---------- STICKY NAV ---------- */
+  .quicknav{
+    position:sticky; top:0; z-index:50; background:rgba(238,242,241,.92); backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line-subtle); padding:10px 0;
+  }
+  .quicknav .row{display:flex; gap:8px; overflow-x:auto; padding:0 24px; max-width:1180px; margin:0 auto; scrollbar-width:thin;}
+  .quicknav a{
+    font-family:var(--font-mono); font-size:12px; white-space:nowrap; text-decoration:none;
+    padding:6px 12px; border-radius:99px; border:1px solid var(--line-strong); color:var(--ink-soft);
+    transition:.15s;
+  }
+  .quicknav a:hover{border-color:var(--ink); color:var(--ink); background:var(--surface);}
+
+  /* ---------- SECTION SHELL ---------- */
+  section{padding:56px 0;}
+  .section-head{margin-bottom:28px; display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;}
+  .section-head .tag{
+    font-family:var(--font-mono); font-size:11px; letter-spacing:.12em; text-transform:uppercase;
+    padding:4px 10px; border-radius:99px; color:#fff;
+  }
+  .section-head h2{font-size:26px;}
+  .section-head p{color:var(--ink-soft); font-size:14.5px; margin:6px 0 0; width:100%;}
+
+  /* ---------- MAP ---------- */
+  .map-card{
+    background:var(--surface); border:1px solid var(--line-subtle); border-radius:16px;
+    padding:20px 14px 10px; overflow-x:auto;
+  }
+  .map-card svg{display:block; min-width:1000px; width:100%; height:auto;}
+  .map-caption{font-family:var(--font-mono); font-size:12px; color:var(--ink-soft); padding:14px 6px 0;}
+
+  .stop{fill:var(--surface); stroke-width:4.5;}
+  .stop-regression{stroke:var(--regression);} .stop-classification{stroke:var(--classification);}
+  .stop-tree{stroke:var(--tree);} .stop-neural{stroke:var(--neural);}
+  .stop-clustering{stroke:var(--clustering);} .stop-dimred{stroke:var(--dimred);}
+  .line-regression{stroke:var(--regression);} .line-classification{stroke:var(--classification);}
+  .line-tree{stroke:var(--tree);} .line-neural{stroke:var(--neural);}
+  .line-clustering{stroke:var(--clustering);} .line-dimred{stroke:var(--dimred);}
+  .conn{stroke:var(--line-strong); stroke-width:3;}
+  .conn-dash{stroke:var(--line-strong); stroke-width:2.5; stroke-dasharray:4 5;}
+  .hub{fill:var(--ink);}
+  .svglabel{font-family:var(--font-mono); font-size:12.5px; fill:var(--ink);}
+  .svglabel-soft{font-family:var(--font-mono); font-size:11px; fill:var(--ink-soft);}
+  .rowtag{font-family:var(--font-mono); font-size:11.5px; font-weight:600; letter-spacing:.04em;}
+
+  /* ---------- DECISION GUIDE ---------- */
+  .decision-grid{display:grid; grid-template-columns:1fr 1fr; gap:18px;}
+  @media(max-width:760px){.decision-grid{grid-template-columns:1fr;}}
+  .decision-card{background:var(--surface); border:1px solid var(--line-subtle); border-radius:14px; padding:22px 24px;}
+  .decision-card h3{font-family:var(--font-mono); font-size:14px; letter-spacing:.06em; text-transform:uppercase; margin-bottom:14px; display:flex; align-items:center; gap:8px;}
+  .decision-card h3 i{width:10px; height:10px; border-radius:50%; display:inline-block;}
+  .decision-card ul{margin:0; padding:0; list-style:none;}
+  .decision-card li{padding:10px 0; border-top:1px dashed var(--line-subtle); font-size:14.5px;}
+  .decision-card li:first-child{border-top:none;}
+  .decision-card li b{display:block; color:var(--ink-soft); font-weight:500; font-size:13px; margin-bottom:2px;}
+  .decision-card li span.arrow{color:var(--ink-soft); margin:0 4px;}
+  .decision-root{
+    font-family:var(--font-mono); text-align:center; font-size:14px; margin:0 0 16px;
+    background:var(--surface); border:1px dashed var(--line-strong); border-radius:99px; padding:10px 18px; display:inline-block;
+  }
+  .decision-root-wrap{text-align:center; width:100%;}
+
+  /* ---------- CARDS GRID ---------- */
+  .grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(270px,1fr)); gap:16px;}
+  .stop-card{
+    background:var(--surface); border:1px solid var(--line-subtle); border-left-width:5px; border-radius:12px;
+    padding:18px 18px 16px; display:flex; flex-direction:column; gap:8px;
+  }
+  .stop-card h3{font-size:17px; font-weight:600;}
+  .eyebrow{
+    font-family:var(--font-mono); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--ink-soft); display:inline-block;
+  }
+  .stop-card p{margin:0; font-size:13.6px; color:var(--ink);}
+  .stop-card p b{color:var(--ink-soft); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:.03em;}
+  .pc{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:4px;}
+  @media(max-width:420px){.pc{grid-template-columns:1fr;}}
+  .pc ul{margin:0; padding:0; list-style:none; font-size:13px;}
+  .pc li{padding-left:16px; position:relative; margin-bottom:4px; color:var(--ink-soft);}
+  .pc .pros li::before{content:"✓"; position:absolute; left:0; color:var(--good); font-weight:600;}
+  .pc .cons li::before{content:"✗"; position:absolute; left:0; color:var(--bad); font-weight:600;}
+  .pc-label{font-size:11px; font-weight:600; letter-spacing:.05em; text-transform:uppercase; margin-bottom:4px; display:block;}
+  .pc .pros .pc-label{color:var(--good);}
+  .pc .cons .pc-label{color:var(--bad);}
+
+  .cat-regression{border-left-color:var(--regression);}
+  .cat-classification{border-left-color:var(--classification);}
+  .cat-tree{border-left-color:var(--tree);}
+  .cat-neural{border-left-color:var(--neural);}
+  .cat-clustering{border-left-color:var(--clustering);}
+  .cat-dimred{border-left-color:var(--dimred);}
+  .cat-found{border-left-color:var(--found);}
+
+  .tag-regression{background:var(--regression);} .tag-classification{background:var(--classification);}
+  .tag-tree{background:var(--tree);} .tag-neural{background:var(--neural);}
+  .tag-clustering{background:var(--clustering);} .tag-dimred{background:var(--dimred);}
+  .tag-found{background:var(--found);}
+
+  /* ---------- STRIP (optimizers / regularization) ---------- */
+  .strip{display:flex; gap:0; flex-wrap:wrap; align-items:stretch;}
+  .strip-step{
+    background:var(--surface); border:1px solid var(--line-subtle); border-radius:12px; padding:14px 16px;
+    flex:1 1 190px; position:relative;
+  }
+  .strip-step h4{font-size:14px; margin:0 0 6px; font-family:var(--font-mono);}
+  .strip-step p{margin:0; font-size:12.8px; color:var(--ink-soft);}
+  .strip-arrow{
+    display:flex; align-items:center; justify-content:center; color:var(--line-strong); font-size:18px;
+    flex:0 0 26px;
+  }
+  @media(max-width:900px){.strip{flex-direction:column;} .strip-arrow{transform:rotate(90deg); flex:0 0 20px;}}
+
+  .reg-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(200px,1fr)); gap:12px;}
+  .reg-card{background:var(--surface); border:1px solid var(--line-subtle); border-radius:10px; padding:14px 16px;}
+  .reg-card h4{font-size:13.5px; margin:0 0 5px; font-family:var(--font-mono);}
+  .reg-card p{margin:0; font-size:12.6px; color:var(--ink-soft);}
+
+  /* ---------- METRICS ---------- */
+  .metrics-grid{display:grid; grid-template-columns:1fr 1fr; gap:18px;}
+  @media(max-width:760px){.metrics-grid{grid-template-columns:1fr;}}
+  .metric-table{width:100%; border-collapse:collapse; background:var(--surface); border-radius:12px; overflow:hidden; border:1px solid var(--line-subtle);}
+  .metric-table caption{
+    text-align:left; font-family:var(--font-mono); font-size:12.5px; text-transform:uppercase; letter-spacing:.06em;
+    padding:12px 16px; color:#fff; caption-side:top;
+  }
+  .metric-table th, .metric-table td{padding:9px 16px; text-align:left; font-size:13.2px; border-top:1px solid var(--line-subtle);}
+  .metric-table th{width:34%; font-weight:600; color:var(--ink);}
+  .metric-table td{color:var(--ink-soft);}
+
+  /* ---------- COMPARISON TABLE ---------- */
+  .cheat-table-wrap{overflow-x:auto; border:1px solid var(--line-subtle); border-radius:12px; background:var(--surface);}
+  table.cheat{border-collapse:collapse; width:100%; min-width:920px; font-size:13px;}
+  table.cheat th{
+    font-family:var(--font-mono); font-size:11px; text-transform:uppercase; letter-spacing:.04em;
+    text-align:left; padding:11px 14px; background:#F4F6F5; border-bottom:2px solid var(--line-strong); position:sticky; top:0;
+  }
+  table.cheat td{padding:10px 14px; border-top:1px solid var(--line-subtle); color:var(--ink-soft);}
+  table.cheat td:first-child{color:var(--ink); font-weight:600;}
+  .dot{width:9px; height:9px; border-radius:50%; display:inline-block; margin-right:7px;}
+
+  footer{padding:40px 0 70px; text-align:center; color:var(--ink-soft); font-family:var(--font-mono); font-size:12px;}
+</style>
+</head>
+<body>
+
+<div class="hero wrap">
+  <div class="kicker">Machine Learning · Field Notes</div>
+  <h1>Every algorithm exists to fix <em>something</em> the one before it couldn't do.</h1>
+  <p class="lede">A revision map of ML, organized like a transit system — each line is a family of algorithms, each stop solves the limitation of the stop before it. Short, exact, and built for fast recall.</p>
+  <div class="legend">
+    <span><i style="background:var(--regression)"></i>Regression</span>
+    <span><i style="background:var(--classification)"></i>Classification</span>
+    <span><i style="background:var(--tree)"></i>Trees &amp; Ensembles</span>
+    <span><i style="background:var(--neural)"></i>Neural Networks</span>
+    <span><i style="background:var(--clustering)"></i>Clustering</span>
+    <span><i style="background:var(--dimred)"></i>Dim. Reduction</span>
+  </div>
+</div>
+
+<nav class="quicknav">
+  <div class="row">
+    <a href="#map">Map</a>
+    <a href="#foundations">Foundations</a>
+    <a href="#decision">Which algorithm?</a>
+    <a href="#regression">Regression</a>
+    <a href="#classification">Classification</a>
+    <a href="#tree">Trees &amp; Ensembles</a>
+    <a href="#neural">Neural Nets</a>
+    <a href="#clustering">Clustering</a>
+    <a href="#dimred">Dim. Reduction</a>
+    <a href="#optim">Optimizers</a>
+    <a href="#reg">Regularization</a>
+    <a href="#metrics">Metrics</a>
+    <a href="#cheat">Cheat Table</a>
+  </div>
+</nav>
+
+<!-- ================= MAP ================= -->
+<section id="map" class="wrap">
+  <div class="section-head">
+    <span class="tag" style="background:var(--ink)">The Map</span>
+    <h2>The ML Metro Map</h2>
+    <p>DATA branches into two paradigms. Each paradigm forks into lines of algorithms. Scroll sideways on small screens.</p>
+  </div>
+
+  <div class="map-card">
+    <svg viewBox="0 0 1080 700" xmlns="http://www.w3.org/2000/svg">
+
+      <!-- hub connectors -->
+      <line class="conn" x1="40" y1="350" x2="170" y2="240"/>
+      <line class="conn" x1="40" y1="350" x2="170" y2="560"/>
+      <line class="conn-dash" x1="40" y1="350" x2="175" y2="350"/>
+
+      <!-- fan: supervised -> rows -->
+      <line class="conn" x1="170" y1="240" x2="290" y2="90"/>
+      <line class="conn" x1="170" y1="240" x2="290" y2="190"/>
+      <line class="conn" x1="170" y1="240" x2="290" y2="290"/>
+      <line class="conn" x1="170" y1="240" x2="290" y2="390"/>
+
+      <!-- fan: unsupervised -> rows -->
+      <line class="conn" x1="170" y1="560" x2="290" y2="520"/>
+      <line class="conn" x1="170" y1="560" x2="290" y2="620"/>
+
+      <!-- REGRESSION line y=90 -->
+      <line class="line-regression conn" x1="290" y1="90" x2="450" y2="90" stroke-width="5" stroke-linecap="round"/>
+      <line class="line-regression conn" x1="450" y1="90" x2="610" y2="90" stroke-width="5" stroke-linecap="round"/>
+      <line class="line-regression conn" x1="610" y1="90" x2="770" y2="90" stroke-width="5" stroke-linecap="round"/>
+      <line class="line-regression conn" x1="770" y1="90" x2="930" y2="90" stroke-width="5" stroke-linecap="round"/>
+
+      <!-- CLASSIFICATION line y=190 -->
+      <line class="line-classification conn" x1="290" y1="190" x2="450" y2="190" stroke-width="5" stroke-linecap="round"/>
+      <line class="line-classification conn" x1="450" y1="190" x2="610" y2="190" stroke-width="5" stroke-linecap="round"/>
+      <line class="line-classification conn" x1="610" y1="190" x2="770" y2="190" stroke-width="5" stroke-linecap="round"/>
+
+      <!-- TREE line y=290 -->
+      <line class="line-tree conn" x1="290" y1="290" x2="450" y2="290" stroke-width="5" stroke-linecap="round"/>
+      <line class="line-tree conn" x1="450" y1="290" x2="610" y2="290" stroke-width="5" stroke-linecap="round"/>
+      <line class="line-tree conn" x1="610" y1="290" x2="770" y2="290" stroke-width="5" stroke-linecap="round"/>
+
+      <!-- NEURAL line, branches at MLP -->
+      <line class="line-neural conn" x1="290" y1="390" x2="450" y2="390" stroke-width="5" stroke-linecap="round"/>
+      <line class="line-neural conn" x1="450" y1="390" x2="610" y2="340" stroke-width="5" stroke-linecap="round"/>
+      <line class="line-neural conn" x1="450" y1="390" x2="610" y2="440" stroke-width="5" stroke-linecap="round"/>
+      <line class="line-neural conn" x1="610" y1="440" x2="770" y2="440" stroke-width="5" stroke-linecap="round"/>
+      <line class="line-neural conn" x1="770" y1="440" x2="930" y2="440" stroke-width="5" stroke-linecap="round"/>
+
+      <!-- CLUSTERING line y=520 -->
+      <line class="line-clustering conn" x1="290" y1="520" x2="450" y2="520" stroke-width="5" stroke-linecap="round"/>
+      <line class="line-clustering conn" x1="450" y1="520" x2="610" y2="520" stroke-width="5" stroke-linecap="round"/>
+
+      <!-- DIM REDUCTION line y=620 -->
+      <line class="line-dimred conn" x1="290" y1="620" x2="450" y2="620" stroke-width="5" stroke-linecap="round"/>
+      <line class="line-dimred conn" x1="450" y1="620" x2="610" y2="620" stroke-width="5" stroke-linecap="round"/>
+
+      <!-- hub nodes -->
+      <circle class="hub" cx="40" cy="350" r="15"/>
+      <text class="svglabel" x="22" y="354" text-anchor="end" font-weight="600">DATA</text>
+
+      <circle class="hub" cx="170" cy="240" r="12"/>
+      <text class="svglabel" x="150" y="244" text-anchor="end" font-weight="600">SUPERVISED</text>
+
+      <circle class="hub" cx="170" cy="560" r="12"/>
+      <text class="svglabel" x="150" y="564" text-anchor="end" font-weight="600">UNSUPERVISED</text>
+
+      <circle class="hub" cx="175" cy="350" r="7"/>
+      <text class="svglabel-soft" x="188" y="354">Reinforcement Learning (reward-based, own path)</text>
+
+      <!-- row tags -->
+      <text class="rowtag" x="205" y="76" fill="var(--regression)">REGRESSION</text>
+      <text class="rowtag" x="205" y="176" fill="var(--classification)">CLASSIFICATION</text>
+      <text class="rowtag" x="205" y="276" fill="var(--tree)">TREES &amp; ENSEMBLES</text>
+      <text class="rowtag" x="205" y="376" fill="var(--neural)">NEURAL NETWORKS</text>
+      <text class="rowtag" x="205" y="506" fill="var(--clustering)">CLUSTERING</text>
+      <text class="rowtag" x="205" y="606" fill="var(--dimred)">DIM. REDUCTION</text>
+
+      <!-- REGRESSION stops -->
+      <circle class="stop stop-regression" cx="290" cy="90" r="9"/>
+      <text class="svglabel" x="290" y="114" text-anchor="middle">Linear</text>
+      <circle class="stop stop-regression" cx="450" cy="90" r="9"/>
+      <text class="svglabel" x="450" y="114" text-anchor="middle">Polynomial</text>
+      <circle class="stop stop-regression" cx="610" cy="90" r="9"/>
+      <text class="svglabel" x="610" y="114" text-anchor="middle">Ridge (L2)</text>
+      <circle class="stop stop-regression" cx="770" cy="90" r="9"/>
+      <text class="svglabel" x="770" y="114" text-anchor="middle">Lasso (L1)</text>
+      <circle class="stop stop-regression" cx="930" cy="90" r="9"/>
+      <text class="svglabel" x="930" y="114" text-anchor="middle">Elastic Net</text>
+
+      <!-- CLASSIFICATION stops -->
+      <circle class="stop stop-classification" cx="290" cy="190" r="9"/>
+      <text class="svglabel" x="290" y="214" text-anchor="middle">Logistic Reg.</text>
+      <circle class="stop stop-classification" cx="450" cy="190" r="9"/>
+      <text class="svglabel" x="450" y="214" text-anchor="middle">KNN</text>
+      <circle class="stop stop-classification" cx="610" cy="190" r="9"/>
+      <text class="svglabel" x="610" y="214" text-anchor="middle">Naive Bayes</text>
+      <circle class="stop stop-classification" cx="770" cy="190" r="9"/>
+      <text class="svglabel" x="770" y="214" text-anchor="middle">SVM</text>
+
+      <!-- TREE stops -->
+      <circle class="stop stop-tree" cx="290" cy="290" r="9"/>
+      <text class="svglabel" x="290" y="314" text-anchor="middle">Decision Tree</text>
+      <circle class="stop stop-tree" cx="450" cy="290" r="9"/>
+      <text class="svglabel" x="450" y="314" text-anchor="middle">Random Forest</text>
+      <circle class="stop stop-tree" cx="610" cy="290" r="9"/>
+      <text class="svglabel" x="610" y="314" text-anchor="middle">Grad. Boosting</text>
+      <circle class="stop stop-tree" cx="770" cy="290" r="9"/>
+      <text class="svglabel" x="770" y="314" text-anchor="middle">XGBoost</text>
+
+      <!-- NEURAL stops -->
+      <circle class="stop stop-neural" cx="290" cy="390" r="9"/>
+      <text class="svglabel" x="290" y="414" text-anchor="middle">Perceptron</text>
+      <circle class="stop stop-neural" cx="450" cy="390" r="9"/>
+      <text class="svglabel" x="450" y="414" text-anchor="middle">MLP</text>
+      <circle class="stop stop-neural" cx="610" cy="340" r="9"/>
+      <text class="svglabel" x="610" y="326" text-anchor="middle">CNN</text>
+      <circle class="stop stop-neural" cx="610" cy="440" r="9"/>
+      <text class="svglabel" x="610" y="464" text-anchor="middle">RNN</text>
+      <circle class="stop stop-neural" cx="770" cy="440" r="9"/>
+      <text class="svglabel" x="770" y="464" text-anchor="middle">LSTM / GRU</text>
+      <circle class="stop stop-neural" cx="930" cy="440" r="9"/>
+      <text class="svglabel" x="930" y="464" text-anchor="middle">Transformer</text>
+
+      <!-- CLUSTERING stops -->
+      <circle class="stop stop-clustering" cx="290" cy="520" r="9"/>
+      <text class="svglabel" x="290" y="544" text-anchor="middle">K-Means</text>
+      <circle class="stop stop-clustering" cx="450" cy="520" r="9"/>
+      <text class="svglabel" x="450" y="544" text-anchor="middle">Hierarchical</text>
+      <circle class="stop stop-clustering" cx="610" cy="520" r="9"/>
+      <text class="svglabel" x="610" y="544" text-anchor="middle">DBSCAN</text>
+
+      <!-- DIM RED stops -->
+      <circle class="stop stop-dimred" cx="290" cy="620" r="9"/>
+      <text class="svglabel" x="290" y="644" text-anchor="middle">PCA</text>
+      <circle class="stop stop-dimred" cx="450" cy="620" r="9"/>
+      <text class="svglabel" x="450" y="644" text-anchor="middle">t-SNE</text>
+      <circle class="stop stop-dimred" cx="610" cy="620" r="9"/>
+      <text class="svglabel" x="610" y="644" text-anchor="middle">UMAP</text>
+
+    </svg>
+    <p class="map-caption">● large node = paradigm split · small ring = algorithm · read left→right as "solves the limit of the previous stop"</p>
+  </div>
+</section>
+
+<!-- ================= FOUNDATIONS ================= -->
+<section id="foundations" class="wrap">
+  <div class="section-head">
+    <span class="tag tag-found">Before the map</span>
+    <h2>Foundations</h2>
+    <p>The vocabulary everything else is built from.</p>
+  </div>
+  <div class="grid">
+    <div class="stop-card cat-found">
+      <span class="eyebrow">Paradigm</span>
+      <h3>Supervised Learning</h3>
+      <p>Learn a mapping from <b>input → labeled output</b>. You have the "right answers" during training.</p>
+      <p><b>Used for</b> prediction: regression (numbers) &amp; classification (categories).</p>
+    </div>
+    <div class="stop-card cat-found">
+      <span class="eyebrow">Paradigm</span>
+      <h3>Unsupervised Learning</h3>
+      <p>Find structure in <b>unlabeled</b> data — no right answers given.</p>
+      <p><b>Used for</b> clustering, dimensionality reduction, anomaly detection.</p>
+    </div>
+    <div class="stop-card cat-found">
+      <span class="eyebrow">Paradigm</span>
+      <h3>Reinforcement Learning</h3>
+      <p>An agent learns by taking actions in an environment and getting <b>reward/penalty</b> feedback — no fixed dataset.</p>
+      <p><b>Used for</b> games, robotics, control systems.</p>
+    </div>
+    <div class="stop-card cat-found">
+      <span class="eyebrow">Core tension</span>
+      <h3>Bias–Variance Tradeoff</h3>
+      <p><b>Bias</b> = error from oversimplified assumptions (underfits). <b>Variance</b> = error from being too sensitive to the training set (overfits).</p>
+      <p>Total error ≈ Bias² + Variance + irreducible noise. Every model design choice trades one for the other.</p>
+    </div>
+    <div class="stop-card cat-found">
+      <span class="eyebrow">Failure modes</span>
+      <h3>Overfitting vs Underfitting</h3>
+      <p><b>Overfit:</b> low train error, high test error — memorized noise. <b>Underfit:</b> high error on both — too simple.</p>
+      <p><b>Fixes:</b> regularization, more/better data, simpler or more complex model, cross-validation.</p>
+    </div>
+    <div class="stop-card cat-found">
+      <span class="eyebrow">Practice</span>
+      <h3>Train / Val / Test Split</h3>
+      <p>Never judge a model on data it trained on. Validation set tunes hyperparameters; test set gives the final, honest score.</p>
+      <p><b>k-fold cross-validation:</b> rotate the validation fold k times for a more reliable estimate on small data.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= DECISION GUIDE ================= -->
+<section id="decision" class="wrap">
+  <div class="section-head">
+    <span class="tag" style="background:var(--ink)">Quick flow</span>
+    <h2>Which algorithm do I even use?</h2>
+    <p>Start at the top, follow the branch that matches your problem.</p>
+  </div>
+  <div class="decision-root-wrap">
+    <div class="decision-root">Do you have labeled data (known correct answers)?</div>
+  </div>
+  <div class="decision-grid">
+    <div class="decision-card">
+      <h3><i style="background:var(--found)"></i>YES → Supervised</h3>
+      <ul>
+        <li><b>Predicting a number</b>Regression <span class="arrow">→</span> Linear / Ridge / Lasso</li>
+        <li><b>Predicting a category, need to explain why</b>Logistic Regression <span class="arrow">→</span> Decision Tree</li>
+        <li><b>Predicting a category, accuracy over explainability</b>Random Forest <span class="arrow">→</span> XGBoost</li>
+        <li><b>Images, text, or sequences</b>Neural Networks — CNN (images), Transformer (text)</li>
+      </ul>
+    </div>
+    <div class="decision-card">
+      <h3><i style="background:var(--dimred)"></i>NO → Unsupervised</h3>
+      <ul>
+        <li><b>Find natural groups in the data</b>Clustering — K-Means (round groups), DBSCAN (odd shapes + noise)</li>
+        <li><b>Compress features / visualize high-dim data</b>Dimensionality Reduction — PCA (fast, linear), t-SNE / UMAP (visual, non-linear)</li>
+        <li><b>Spot rare/unusual points</b>Anomaly detection via DBSCAN, Isolation Forest, or Autoencoders</li>
+        <li><b>Learn from trial-and-error, no dataset at all</b>Reinforcement Learning</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ================= REGRESSION ================= -->
+<section id="regression" class="wrap">
+  <div class="section-head">
+    <span class="tag tag-regression">Line 1</span>
+    <h2>Regression — predicting a number</h2>
+  </div>
+  <div class="grid">
+    <div class="stop-card cat-regression">
+      <span class="eyebrow">Origin / baseline</span>
+      <h3>Linear Regression</h3>
+      <p><b>How</b> Fit a straight line minimizing sum of squared errors (OLS).</p>
+      <div class="pc">
+        <div class="pros"><span class="pc-label">Pros</span><ul><li>Simple, fast, interpretable</li><li>Coefficients show each feature's effect</li></ul></div>
+        <div class="cons"><span class="pc-label">Cons</span><ul><li>Assumes a linear relationship</li><li>Sensitive to outliers</li></ul></div>
+      </div>
+    </div>
+    <div class="stop-card cat-regression">
+      <span class="eyebrow">Evolved from: Linear Regression</span>
+      <h3>Polynomial Regression</h3>
+      <p><b>Solves</b> Linear regression can't fit curved relationships.</p>
+      <p><b>How</b> Add powers of features (x², x³…), still fit linearly on the transformed inputs.</p>
+      <div class="pc">
+        <div class="pros"><span class="pc-label">Pros</span><ul><li>Captures non-linear trends</li><li>Still simple linear math underneath</li></ul></div>
+        <div class="cons"><span class="pc-label">Cons</span><ul><li>High degree → wild overfitting</li><li>Extrapolates very badly</li></ul></div>
+      </div>
+    </div>
+    <div class="stop-card cat-regression">
+      <span class="eyebrow">Evolved from: Polynomial Regression</span>
+      <h3>Ridge Regression (L2)</h3>
+      <p><b>Solves</b> Many/correlated features make OLS coefficients unstable and overfit.</p>
+      <p><b>How</b> Add penalty λΣw² to the loss — shrinks all weights toward zero.</p>
+      <div class="pc">
+        <div class="pros"><span class="pc-label">Pros</span><ul><li>Cuts variance / overfitting</li><li>Handles multicollinearity well</li></ul></div>
+        <div class="cons"><span class="pc-label">Cons</span><ul><li>Keeps every feature (no selection)</li><li>Adds a λ to tune</li></ul></div>
+      </div>
+    </div>
+    <div class="stop-card cat-regression">
+      <span class="eyebrow">Evolved from: Ridge Regression</span>
+      <h3>Lasso Regression (L1)</h3>
+      <p><b>Solves</b> Ridge shrinks irrelevant features but never removes them.</p>
+      <p><b>How</b> Penalty λΣ|w| can push coefficients exactly to zero.</p>
+      <div class="pc">
+        <div class="pros"><span class="pc-label">Pros</span><ul><li>Built-in feature selection</li><li>Sparse, interpretable models</li></ul></div>
+        <div class="cons"><span class="pc-label">Cons</span><ul><li>Unstable with correlated features</li><li>Can underfit if λ too high</li></ul></div>
+      </div>
+    </div>
+    <div class="stop-card cat-regression">
+      <span class="eyebrow">Evolved from: Lasso Regression</span>
+      <h3>Elastic Net</h3>
+      <p><b>Solves</b> Lasso struggles with correlated feature groups; Ridge won't select features — need both.</p>
+      <p><b>How</b> Weighted mix of L1 + L2 penalties.</p>
+      <div class="pc">
+        <div class="pros"><span class="pc-label">Pros</span><ul><li>Selection + stability together</li></ul></div>
+        <div class="cons"><span class="pc-label">Cons</span><ul><li>Two hyperparameters to tune</li></ul></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CLASSIFICATION ================= -->
+<section id="classification" class="wrap">
+  <div class="section-head">
+    <span class="tag tag-classification">Line 2</span>
+    <h2>Classification — predicting a category</h2>
+  </div>
+  <div class="grid">
+    <div class="stop-card cat-classification">
+      <span class="eyebrow">Origin / baseline</span>
+      <h3>Logistic Regression</h3>
+      <p><b>How</b> Sigmoid of a weighted sum → class probability; trained via log-loss.</p>
+      <div class="pc">
+        <div class="pros"><span class="pc-label">Pros</span><ul><li>Fast, interpretable</li><li>Calibrated probabilities</li></ul></div>
+        <div class="cons"><span class="pc-label">Cons</span><ul><li>Only draws a linear boundary</li><li>Assumes independent features</li></ul></div>
+      </div>
+    </div>
+    <div class="stop-card cat-classification">
+      <span class="eyebrow">Evolved from: Logistic Regression</span>
+      <h3>K-Nearest Neighbors</h3>
+      <p><b>Solves</b> Real class boundaries are often irregular, not linear.</p>
+      <p><b>How</b> Classify by majority vote of the k closest training points. No training phase.</p>
+      <div class="pc">
+        <div class="pros"><span class="pc-label">Pros</span><ul><li>No shape assumptions</li><li>Naturally multi-class</li></ul></div>
+        <div class="cons"><span class="pc-label">Cons</span><ul><li>Slow at prediction on big data</li><li>Sensitive to scale &amp; noisy features</li></ul></div>
+      </div>
+    </div>
+    <div class="stop-card cat-classification">
+      <span class="eyebrow">Evolved from: KNN</span>
+      <h3>Naive Bayes</h3>
+      <p><b>Solves</b> KNN is slow &amp; memory-heavy at scale — need a fast probabilistic model.</p>
+      <p><b>How</b> Bayes' theorem assuming features are conditionally independent given the class.</p>
+      <div class="pc">
+        <div class="pros"><span class="pc-label">Pros</span><ul><li>Extremely fast, tiny data needs</li><li>Great for text/spam</li></ul></div>
+        <div class="cons"><span class="pc-label">Cons</span><ul><li>Independence assumption rarely true</li></ul></div>
+      </div>
+    </div>
+    <div class="stop-card cat-classification">
+      <span class="eyebrow">Evolved from: Naive Bayes</span>
+      <h3>Support Vector Machine</h3>
+      <p><b>Solves</b> Need the most robust boundary possible, plus a way to handle non-linear splits.</p>
+      <p><b>How</b> Maximize the margin between classes; kernel trick projects data to separate it non-linearly.</p>
+      <div class="pc">
+        <div class="pros"><span class="pc-label">Pros</span><ul><li>Strong in high dimensions</li><li>Kernels handle non-linear data</li></ul></div>
+        <div class="cons"><span class="pc-label">Cons</span><ul><li>Slow on large datasets</li><li>Hard to tune, no native probabilities</li></ul></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= TREES ================= -->
+<section id="tree" class="wrap">
+  <div class="section-head">
+    <span class="tag tag-tree">Line 3</span>
+    <h2>Trees &amp; Ensembles</h2>
+  </div>
+  <div class="grid">
+    <div class="stop-card cat-tree">
+      <span class="eyebrow">Origin / baseline</span>
+      <h3>Decision Tree</h3>
+      <p><b>How</b> Recursively split on the feature/threshold that most reduces impurity (Gini/Entropy).</p>
+      <div class="pc">
+        <div class="pros"><span class="pc-label">Pros</span><ul><li>Fully interpretable "white box"</li><li>No scaling needed, handles non-linear data</li></ul></div>
+        <div class="cons"><span class="pc-label">Cons</span><ul><li>High variance, unstable</li><li>Overfits easily if grown deep</li></ul></div>
+      </div>
+    </div>
+    <div class="stop-card cat-tree">
+      <span class="eyebrow">Evolved from: Decision Tree</span>
+      <h3>Random Forest</h3>
+      <p><b>Solves</b> A single tree overfits and is unstable.</p>
+      <p><b>How</b> Bagging — many trees on random data/feature subsets, then average their votes.</p>
+      <div class="pc">
+        <div class="pros"><span class="pc-label">Pros</span><ul><li>Much lower variance</li><li>Robust, gives feature importance</li></ul></div>
+        <div class="cons"><span class="pc-label">Cons</span><ul><li>Less interpretable, slower to predict</li></ul></div>
+      </div>
+    </div>
+    <div class="stop-card cat-tree">
+      <span class="eyebrow">Evolved from: Random Forest</span>
+      <h3>Gradient Boosting</h3>
+      <p><b>Solves</b> Bagging cuts variance but not bias — trees don't learn from each other's mistakes.</p>
+      <p><b>How</b> Build trees sequentially; each new tree fits the residual errors of the ensemble so far.</p>
+      <div class="pc">
+        <div class="pros"><span class="pc-label">Pros</span><ul><li>Usually most accurate tree method</li></ul></div>
+        <div class="cons"><span class="pc-label">Cons</span><ul><li>Sequential = slower to train</li><li>Needs careful tuning / early stopping</li></ul></div>
+      </div>
+    </div>
+    <div class="stop-card cat-tree">
+      <span class="eyebrow">Evolved from: Gradient Boosting</span>
+      <h3>XGBoost / LightGBM / CatBoost</h3>
+      <p><b>Solves</b> Vanilla boosting is slow, unregularized, doesn't scale.</p>
+      <p><b>How</b> Regularized, parallelized gradient boosting with smart handling of missing/categorical data.</p>
+      <div class="pc">
+        <div class="pros"><span class="pc-label">Pros</span><ul><li>State of the art on tabular data</li><li>Fast, regularized against overfitting</li></ul></div>
+        <div class="cons"><span class="pc-label">Cons</span><ul><li>Many hyperparameters</li><li>Less interpretable</li></ul></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= NEURAL ================= -->
+<section id="neural" class="wrap">
+  <div class="section-head">
+    <span class="tag tag-neural">Line 4</span>
+    <h2>Neural Networks</h2>
+  </div>
+  <div class="grid">
+    <div class="stop-card cat-neural">
+      <span class="eyebrow">Origin / baseline</span>
+      <h3>Perceptron</h3>
+      <p><b>How</b> Weighted sum of inputs + step activation → one linear decision boundary.</p>
+      <div class="pc">
+        <div class="pros"><span class="pc-label">Pros</span><ul><li>Foundation of all neural nets</li></ul></div>
+        <div class="cons"><span class="pc-label">Cons</span><ul><li>Only solves linearly separable problems (fails on XOR)</li></ul></div>
+      </div>
+    </div>
+    <div class="stop-card cat-neural">
+      <span class="eyebrow">Evolved from: Perceptron</span>
+      <h3>Multi-Layer Perceptron (MLP)</h3>
+      <p><b>Solves</b> A single perceptron can't learn non-linear functions.</p>
+      <p><b>How</b> Stack layers with non-linear activations (ReLU) + train via backpropagation.</p>
+      <div class="pc">
+        <div class="pros"><span class="pc-label">Pros</span><ul><li>Universal function approximator</li></ul></div>
+        <div class="cons"><span class="pc-label">Cons</span><ul><li>Needs lots of data</li><li>Ignores spatial/sequential structure</li></ul></div>
+      </div>
+    </div>
+    <div class="stop-card cat-neural">
+      <span class="eyebrow">Evolved from: MLP</span>
+      <h3>Convolutional Neural Net (CNN)</h3>
+      <p><b>Solves</b> MLPs need huge parameter counts on images and ignore that nearby pixels relate.</p>
+      <p><b>How</b> Shared filters slide over the input to detect local patterns (edges → shapes → objects).</p>
+      <div class="pc">
+        <div class="pros"><span class="pc-label">Pros</span><ul><li>Far fewer params than MLP for images</li><li>Translation-invariant</li></ul></div>
+        <div class="cons"><span class="pc-label">Cons</span><ul><li>Needs lots of labeled data + compute</li></ul></div>
+      </div>
+    </div>
+    <div class="stop-card cat-neural">
+      <span class="eyebrow">Evolved from: MLP</span>
+      <h3>Recurrent Neural Net (RNN)</h3>
+      <p><b>Solves</b> MLPs/CNNs have no memory of previous inputs — bad for sequences.</p>
+      <p><b>How</b> A hidden state loops through each time step, carrying past context forward.</p>
+      <div class="pc">
+        <div class="pros"><span class="pc-label">Pros</span><ul><li>Models variable-length sequences</li></ul></div>
+        <div class="cons"><span class="pc-label">Cons</span><ul><li>Vanishing gradients forget long-range context</li><li>Can't parallelize across time steps</li></ul></div>
+      </div>
+    </div>
+    <div class="stop-card cat-neural">
+      <span class="eyebrow">Evolved from: RNN</span>
+      <h3>LSTM / GRU</h3>
+      <p><b>Solves</b> Plain RNNs forget long-term context.</p>
+      <p><b>How</b> Gating mechanisms (input/forget/output) learn what to keep or discard over long sequences.</p>
+      <div class="pc">
+        <div class="pros"><span class="pc-label">Pros</span><ul><li>Much longer memory than vanilla RNN</li></ul></div>
+        <div class="cons"><span class="pc-label">Cons</span><ul><li>Still sequential, slow to train</li></ul></div>
+      </div>
+    </div>
+    <div class="stop-card cat-neural">
+      <span class="eyebrow">Evolved from: LSTM</span>
+      <h3>Transformer</h3>
+      <p><b>Solves</b> RNN/LSTM process one token at a time — slow, and still lose very long-range context.</p>
+      <p><b>How</b> Self-attention lets every token look at every other token in parallel, weighted by relevance.</p>
+      <div class="pc">
+        <div class="pros"><span class="pc-label">Pros</span><ul><li>Parallelizable, fast to train</li><li>Captures long-range dependencies</li></ul></div>
+        <div class="cons"><span class="pc-label">Cons</span><ul><li>Quadratic cost with sequence length</li><li>Needs huge data/compute from scratch</li></ul></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CLUSTERING ================= -->
+<section id="clustering" class="wrap">
+  <div class="section-head">
+    <span class="tag tag-clustering">Line 5</span>
+    <h2>Clustering</h2>
+  </div>
+  <div class="grid">
+    <div class="stop-card cat-clustering">
+      <span class="eyebrow">Origin / baseline</span>
+      <h3>K-Means</h3>
+      <p><b>How</b> Pick k centroids, assign points to the nearest one, recompute centroids, repeat.</p>
+      <div class="pc">
+        <div class="pros"><span class="pc-label">Pros</span><ul><li>Fast, simple, scales well</li></ul></div>
+        <div class="cons"><span class="pc-label">Cons</span><ul><li>Must pick k upfront</li><li>Assumes round, equal-sized clusters</li></ul></div>
+      </div>
+    </div>
+    <div class="stop-card cat-clustering">
+      <span class="eyebrow">Evolved from: K-Means</span>
+      <h3>Hierarchical Clustering</h3>
+      <p><b>Solves</b> K-Means forces guessing k and assumes spherical clusters.</p>
+      <p><b>How</b> Iteratively merge the closest clusters into a tree (dendrogram); cut it anywhere for k clusters.</p>
+      <div class="pc">
+        <div class="pros"><span class="pc-label">Pros</span><ul><li>No k needed upfront</li><li>Shows structure at every level</li></ul></div>
+        <div class="cons"><span class="pc-label">Cons</span><ul><li>O(n²)–O(n³), doesn't scale</li></ul></div>
+      </div>
+    </div>
+    <div class="stop-card cat-clustering">
+      <span class="eyebrow">Evolved from: Hierarchical</span>
+      <h3>DBSCAN</h3>
+      <p><b>Solves</b> Prior methods assume blob-shaped clusters and struggle with noise.</p>
+      <p><b>How</b> Group densely-packed points; low-density points become outliers.</p>
+      <div class="pc">
+        <div class="pros"><span class="pc-label">Pros</span><ul><li>Arbitrary shapes, auto outlier detection</li></ul></div>
+        <div class="cons"><span class="pc-label">Cons</span><ul><li>Struggles with varying density</li><li>Sensitive to eps / min-points</li></ul></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= DIM RED ================= -->
+<section id="dimred" class="wrap">
+  <div class="section-head">
+    <span class="tag tag-dimred">Line 6</span>
+    <h2>Dimensionality Reduction</h2>
+  </div>
+  <div class="grid">
+    <div class="stop-card cat-dimred">
+      <span class="eyebrow">Origin / baseline</span>
+      <h3>PCA</h3>
+      <p><b>Solves</b> Too many features → curse of dimensionality, slow training, hard to visualize.</p>
+      <p><b>How</b> Find orthogonal directions of max variance, project onto fewer of them.</p>
+      <div class="pc">
+        <div class="pros"><span class="pc-label">Pros</span><ul><li>Fast, removes correlated noise</li></ul></div>
+        <div class="cons"><span class="pc-label">Cons</span><ul><li>Only captures linear structure</li><li>Components hard to interpret</li></ul></div>
+      </div>
+    </div>
+    <div class="stop-card cat-dimred">
+      <span class="eyebrow">Evolved from: PCA</span>
+      <h3>t-SNE</h3>
+      <p><b>Solves</b> PCA's linear projections often make poor 2D visualizations of complex data.</p>
+      <p><b>How</b> Match pairwise similarities in high- and low-D space, preserving local neighborhoods.</p>
+      <div class="pc">
+        <div class="pros"><span class="pc-label">Pros</span><ul><li>Excellent cluster visualization</li></ul></div>
+        <div class="cons"><span class="pc-label">Cons</span><ul><li>Slow, no new-point projection</li><li>Loses global structure</li></ul></div>
+      </div>
+    </div>
+    <div class="stop-card cat-dimred">
+      <span class="eyebrow">Evolved from: t-SNE</span>
+      <h3>UMAP</h3>
+      <p><b>Solves</b> t-SNE is slow, loses global structure, can't embed new points.</p>
+      <p><b>How</b> Manifold-learning based neighborhood preservation, optimized for speed.</p>
+      <div class="pc">
+        <div class="pros"><span class="pc-label">Pros</span><ul><li>Faster, keeps more global structure</li><li>Can transform new data</li></ul></div>
+        <div class="cons"><span class="pc-label">Cons</span><ul><li>Results still hyperparameter-sensitive</li></ul></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= OPTIMIZERS ================= -->
+<section id="optim" class="wrap">
+  <div class="section-head">
+    <span class="tag" style="background:var(--ink)">Cross-cutting</span>
+    <h2>How models learn: the optimizer chain</h2>
+    <p>Each step fixes a specific pain point of the previous one.</p>
+  </div>
+  <div class="strip">
+    <div class="strip-step"><h4>Batch Gradient Descent</h4><p>Compute the gradient over the whole dataset, then step. Accurate but heavy on large data.</p></div>
+    <div class="strip-arrow">→</div>
+    <div class="strip-step"><h4>Stochastic GD (SGD)</h4><p><b>Fixes:</b> full-batch is too slow per step. Update using one/few random samples at a time. Noisier, faster.</p></div>
+    <div class="strip-arrow">→</div>
+    <div class="strip-step"><h4>Momentum</h4><p><b>Fixes:</b> SGD zig-zags in narrow ravines. Adds a fraction of the previous update to smooth the path.</p></div>
+    <div class="strip-arrow">→</div>
+    <div class="strip-step"><h4>RMSProp</h4><p><b>Fixes:</b> one learning rate doesn't fit every parameter. Adapts rate per-parameter using recent squared gradients.</p></div>
+    <div class="strip-arrow">→</div>
+    <div class="strip-step"><h4>Adam</h4><p><b>Fixes:</b> combines Momentum + RMSProp. Default choice for deep learning; fast and robust.</p></div>
+  </div>
+</section>
+
+<!-- ================= REGULARIZATION ================= -->
+<section id="reg" class="wrap">
+  <div class="section-head">
+    <span class="tag" style="background:var(--ink)">Cross-cutting</span>
+    <h2>Fighting overfitting</h2>
+    <p>Techniques used across almost every model family above.</p>
+  </div>
+  <div class="reg-grid">
+    <div class="reg-card"><h4>L1 / L2 penalty</h4><p>Penalize large weights in the loss function (see Lasso/Ridge).</p></div>
+    <div class="reg-card"><h4>Dropout</h4><p>Randomly disable neurons during training so the net can't over-rely on any one path.</p></div>
+    <div class="reg-card"><h4>Early Stopping</h4><p>Stop training the moment validation loss starts rising again.</p></div>
+    <div class="reg-card"><h4>Data Augmentation</h4><p>Artificially expand training data (crops, flips, noise) so the model generalizes better.</p></div>
+    <div class="reg-card"><h4>Batch Normalization</h4><p>Normalize each layer's inputs — stabilizes and speeds up training.</p></div>
+    <div class="reg-card"><h4>Cross-Validation</h4><p>Rotate the validation fold to get a more reliable estimate of real-world performance.</p></div>
+  </div>
+</section>
+
+<!-- ================= METRICS ================= -->
+<section id="metrics" class="wrap">
+  <div class="section-head">
+    <span class="tag" style="background:var(--ink)">Cross-cutting</span>
+    <h2>Evaluation metrics</h2>
+    <p>Pick the metric for the mistake that actually costs you.</p>
+  </div>
+  <div class="metrics-grid">
+    <table class="metric-table">
+      <caption style="background:var(--classification)">Classification</caption>
+      <tr><th>Accuracy</th><td>% correct overall — misleading on imbalanced classes.</td></tr>
+      <tr><th>Precision</th><td>Of predicted positives, how many were right. Use when false positives are costly.</td></tr>
+      <tr><th>Recall</th><td>Of actual positives, how many were caught. Use when false negatives are costly (e.g. disease screening).</td></tr>
+      <tr><th>F1-score</th><td>Harmonic mean of precision &amp; recall — good single number for imbalanced data.</td></tr>
+      <tr><th>ROC-AUC</th><td>How well the model ranks positives above negatives across all thresholds.</td></tr>
+      <tr><th>Confusion Matrix</th><td>Grid of true/false positives/negatives — the source all the above are built from.</td></tr>
+    </table>
+    <table class="metric-table">
+      <caption style="background:var(--regression)">Regression</caption>
+      <tr><th>MAE</th><td>Mean absolute error — average size of mistakes, in original units, robust to outliers.</td></tr>
+      <tr><th>MSE</th><td>Mean squared error — penalizes big mistakes much more heavily.</td></tr>
+      <tr><th>RMSE</th><td>√MSE — back in original units, still punishes large errors.</td></tr>
+      <tr><th>R²</th><td>Fraction of variance explained by the model (1.0 = perfect, 0 = no better than the mean).</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ================= CHEAT TABLE ================= -->
+<section id="cheat" class="wrap">
+  <div class="section-head">
+    <span class="tag" style="background:var(--ink)">At a glance</span>
+    <h2>Quick comparison table</h2>
+  </div>
+  <div class="cheat-table-wrap">
+    <table class="cheat">
+      <tr><th>Algorithm</th><th>Type</th><th>Interpretability</th><th>Train Speed</th><th>Handles Non-linearity</th><th>Overfitting Risk</th></tr>
+      <tr><td><span class="dot" style="background:var(--regression)"></span>Linear Regression</td><td>Regression</td><td>High</td><td>Fast</td><td>No</td><td>Low</td></tr>
+      <tr><td><span class="dot" style="background:var(--classification)"></span>Logistic Regression</td><td>Classification</td><td>High</td><td>Fast</td><td>No</td><td>Low</td></tr>
+      <tr><td><span class="dot" style="background:var(--classification)"></span>KNN</td><td>Classification</td><td>Medium</td><td>Instant (lazy)</td><td>Yes</td><td>Medium</td></tr>
+      <tr><td><span class="dot" style="background:var(--classification)"></span>SVM</td><td>Classification</td><td>Low</td><td>Slow (large data)</td><td>Yes (kernels)</td><td>Low–Medium</td></tr>
+      <tr><td><span class="dot" style="background:var(--tree)"></span>Decision Tree</td><td>Both</td><td>High</td><td>Fast</td><td>Yes</td><td>High</td></tr>
+      <tr><td><span class="dot" style="background:var(--tree)"></span>Random Forest</td><td>Both</td><td>Medium</td><td>Medium</td><td>Yes</td><td>Low–Medium</td></tr>
+      <tr><td><span class="dot" style="background:var(--tree)"></span>XGBoost</td><td>Both</td><td>Low–Medium</td><td>Medium</td><td>Yes</td><td>Medium (if untuned)</td></tr>
+      <tr><td><span class="dot" style="background:var(--neural)"></span>MLP / Deep NN</td><td>Both</td><td>Low</td><td>Slow</td><td>Yes</td><td>High (needs regularization)</td></tr>
+      <tr><td><span class="dot" style="background:var(--neural)"></span>Transformer</td><td>Both</td><td>Very Low</td><td>Very Slow</td><td>Yes</td><td>High (needs huge data)</td></tr>
+      <tr><td><span class="dot" style="background:var(--clustering)"></span>K-Means</td><td>Clustering</td><td>Medium</td><td>Fast</td><td>No (spherical)</td><td>N/A</td></tr>
+      <tr><td><span class="dot" style="background:var(--dimred)"></span>PCA</td><td>Dim. Reduction</td><td>Medium</td><td>Fast</td><td>No</td><td>N/A</td></tr>
+    </table>
+  </div>
+</section>
+
+<footer>Built for fast revision — trace any algorithm back along its line to see exactly what problem it was born to solve.</footer>
+
+</body>
+</html>
